@@ -22,7 +22,7 @@ namespace lab2
             return -1;
         }
 
-        public static BigInteger SilverGelman(BigInteger alpha, BigInteger beta, BigInteger n)
+        public static BigInteger PoligHellman(BigInteger alpha, BigInteger beta, BigInteger n)
         {
             // Canonical Factorization
 
@@ -35,20 +35,55 @@ namespace lab2
                 table1.Add([]);
                 for (BigInteger i = 0; i < p; i++)
                 {
-                    BigInteger r = BigInteger.ModPow(alpha, (n * i) / p, n);
+                    BigInteger r = BigInteger.ModPow(alpha, ((n-1) * i) / p, n);
                     table1[^1].Add(r);
                 }
             }
 
-            List<BigInteger> xs = [];
+            List<List<BigInteger>> xis = [];
+
+            var factNKeysList = factN.Keys.ToList();
 
             foreach (var p in factN.Keys)
             {
-                var x = BruteForce(alpha, beta, BigInteger.Pow(p, factN[p]));
-                xs.Add(x);
+                List<BigInteger> pXis = [];
+                for (int i = 0; i < factN[p]; i++)
+                {
+
+                    BigInteger alphaExponent = 0;
+
+                    for (int j = 0; j < pXis.Count; j++)
+                    {
+                        alphaExponent -= pXis[j] * BigInteger.Pow(p, j);
+                    }
+                    var expAlpha = BigInteger.ModPow(alpha, -alphaExponent, n);
+                    Utils.ExtendedGCD(expAlpha, n, out expAlpha);
+                    var expBeta = BigInteger.ModPow(beta * expAlpha, (n - 1) / BigInteger.Pow(p, i + 1), n);
+
+                    pXis.Add(table1[factNKeysList.FindIndex(x => x == p)].FindIndex(x => x == expBeta));
+
+                }
+                xis.Add(pXis);
             }
 
-            return 0;
+            List<BigInteger> xs = [];
+            List<BigInteger> mods = [];
+
+            for (int j = 0; j < xis.Count; j++)
+            {
+                BigInteger X = 0;
+                var p = factNKeysList[j];
+                for (int i = 0; i < xis[j].Count; i++)
+                {
+                    X += xis[j][i] * BigInteger.Pow(p, i);
+                }
+                var mod = BigInteger.Pow(p, factN[p]);
+                X = Utils.Mod(X, mod);
+                xs.Add(X);
+                mods.Add(mod);
+            }
+
+            return Utils.CongruencesSolver(xs, mods);
         }
 
     }
